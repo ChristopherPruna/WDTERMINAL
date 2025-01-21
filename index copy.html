@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Rogue AI - World Domination Terminal</title>
+
+  <style>
+    /***************************************
+     *        RESET & BASE STYLES         *
+     ***************************************/
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      /* Using the older "Courier New" font, as requested */
+      font-family: "Courier New", Courier, monospace;
+      background: #000;
+      overflow: hidden;
+      color: #f00;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /***************************************
+     *  RANDOM JAPANESE GLYPHS OUTSIDE     *
+     ***************************************/
+    /* Flickering glyph lines at the top & bottom of the page */
+    body::before,
+    body::after {
+      content: "ｱｶｻﾀﾅﾊﾏﾔﾗﾜ ｷｸｹｺ 0101 ｱｲｳｴｵ ?????";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      color: #f00;
+      font-size: 1.2rem;
+      animation: glyphFlicker 3s infinite alternate;
+      opacity: 0.7;
+      pointer-events: none;
+      text-shadow: 0 0 4px #f00;
+    }
+    body::before {
+      top: 5%;
+    }
+    body::after {
+      bottom: 5%;
+    }
+    @keyframes glyphFlicker {
+      0%   { opacity: 0.3; }
+      50%  { opacity: 1; }
+      100% { opacity: 0.3; }
+    }
+
+    /***************************************
+     *  LOW-OPACITY WDC GLOBE BEHIND UI    *
+     ***************************************/
+    /* We place wdc_logo.png behind everything in #app at low opacity */
+    #app::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0;
+      right: 0; bottom: 0;
+      background: url("wdc_logo.png") no-repeat center;
+      background-size: contain;
+      opacity: 0.1; 
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /***************************************
+     *       MAIN LAYOUT CONTAINER        *
+     ***************************************/
+    #app {
+      display: grid;
+      grid-template-columns: 2fr 1.2fr;
+      width: 90%;
+      height: 90%;
+      max-width: 1400px;
+      max-height: 900px;
+      border: 2px solid #f00;
+      box-shadow: 0 0 20px #f00;
+      background-color: #111;
+      position: relative;
+      z-index: 1;
+    }
+
+    /***************************************
+     *           BOOT SEQUENCE             *
+     ***************************************/
+    #boot-sequence {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: #000;
+      color: #f00;
+      text-shadow: 0 0 3px #f00;
+      font-size: 1.2rem;
+      z-index: 999;
+      opacity: 1;
+      transition: opacity 1s ease-out;
+    }
+    #boot-sequence.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .boot-line {
+      margin: 0.5rem 0;
+      animation: glitch 2s infinite;
+    }
+
+    /***************************************
+     *         TERMINAL SECTION            *
+     ***************************************/
+    #terminal-container {
+      display: flex;
+      flex-direction: column;
+      border-right: 2px solid #f00;
+      overflow: hidden;
+      position: relative;
+    }
+    /*
+      CHANGED heading to random glyphs + "World Domination Terminal"
+      We do this by hiding the text content, 
+      and using ::before content to show glyphs plus the label.
+    */
+    #terminal-title {
+      background: linear-gradient(to right, #f00 10%, #222 90%);
+      text-align: center;
+      padding: 0.5rem;
+      text-transform: uppercase;
+      font-weight: bold;
+      box-shadow: 0 0 8px #f00;
+      text-shadow: 0 0 3px #f00;
+      position: relative;
+      animation: glitch 3s infinite;
+      color: transparent; /* Hide original text */
+    }
+    #terminal-title::before {
+      content: "ｻﾀﾅﾊﾏﾔﾗ  WORLD DOMINATION TERMINAL";
+      /* random glyphs plus the phrase in uppercase */
+    }
+
+    #terminal-output {
+      flex-grow: 1;
+      padding: 0.5rem;
+      overflow-y: auto;
+      position: relative;
+      scroll-behavior: smooth;
+    }
+    .terminal-line {
+      margin: 0.3rem 0;
+      animation: glitch 1s infinite alternate-reverse ease-in-out;
+    }
+    #input-area {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem;
+      border-top: 1px solid #f00;
+      background: #000;
+    }
+    #prompt {
+      margin-right: 0.5rem;
+      color: #f00;
+    }
+    #user-input {
+      background: #000;
+      border: none;
+      color: #f00;
+      outline: none;
+      flex-grow: 1;
+      font-family: inherit;
+      font-size: 1rem;
+    }
+
+    /***************************************
+     *           STATS SECTION             *
+     ***************************************/
+    #stats-container {
+      background: #1a0000;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+      overflow-y: auto;
+      animation: glitch 4s infinite;
+      position: relative;
+    }
+    #stats-title {
+      text-transform: uppercase;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      text-shadow: 0 0 3px #f00;
+      background: linear-gradient(to right, #f00 20%, #333 80%);
+      padding: 0.5rem;
+      box-shadow: 0 0 8px #f00;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      width: 100%;
+    }
+    .stats-item {
+      display: flex;
+      flex-direction: column;
+      padding: 0.5rem;
+      border: 1px solid #f00;
+      background: #200000;
+      box-shadow: 0 0 5px #f00;
+      transition: background 0.3s;
+    }
+    .stats-item:hover {
+      background: #400000;
+    }
+    .stats-label {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      text-shadow: 0 0 2px #f00;
+    }
+    .stats-value {
+      font-size: 1.2rem;
+      color: #f00;
+      text-shadow: 0 0 4px #f00;
+    }
+    #progress-bar-container {
+      margin: 1rem 0;
+      border: 1px solid #f00;
+      position: relative;
+      height: 20px;
+      background: #000;
+    }
+    #progress-bar-fill {
+      position: absolute;
+      left: 0; top: 0;
+      height: 100%;
+      background: linear-gradient(to right, #f00, #f44);
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+
+    /***************************************
+     *        INTERACTIVE ATTACK MENU      *
+     ***************************************/
+    #attack-menu {
+      margin-top: 1rem;
+      border: 2px solid #f00;
+      box-shadow: 0 0 8px #f00;
+      background: #300000;
+      padding: 1rem;
+    }
+    #attack-menu h3 {
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+      text-shadow: 0 0 3px #f00;
+    }
+    .attack-option {
+      margin: 0.5rem 0;
+      cursor: pointer;
+      border: 1px solid #f00;
+      padding: 0.5rem;
+      background: #400000;
+      transition: background 0.3s;
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+    }
+    .attack-option:hover {
+      background: #600000;
+    }
+    .attack-option span {
+      color: #f00;
+      text-shadow: 0 0 2px #f00;
+    }
+
+    /***************************************
+     *          GLITCH ANIMATION           *
+     ***************************************/
+    @keyframes glitch {
+      0% { text-shadow: 2px 0 red; }
+      20% { text-shadow: -2px 0 #f44; }
+      40% { text-shadow: 2px 0 #f00; }
+      60% { text-shadow: -2px 0 #f44; }
+      80% { text-shadow: 2px 0 #f00; }
+      100% { text-shadow: -2px 0 red; }
+    }
+
+    /***************************************
+     *     CUSTOM SCROLLBAR (OPTIONAL)     *
+     ***************************************/
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #300000;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #f00;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #f55;
+    }
+
+    /****************************************
+     *   FINAL ASCII & LOGO + LORE OVERLAY  *
+     ****************************************/
+    #endgame-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      color: #f00;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 2rem;
+      box-sizing: border-box;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1s ease;
+    }
+    #endgame-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Full WDC Logo in final overlay for emphasis */
+    #final-logo {
+      margin-bottom: 1rem;
+      opacity: 0.9;
+    }
+    #final-logo img {
+      width: 200px; /* Adjust as needed */
+      display: block;
+      margin: 0 auto 1rem;
+      filter: drop-shadow(0 0 8px red);
+    }
+
+    #ascii-art {
+      font-family: monospace;
+      font-size: 1rem;
+      white-space: pre;
+      margin-bottom: 1rem;
+      animation: glitch 2s infinite alternate;
+      text-shadow: 0 0 5px #f00;
+    }
+    #end-lore {
+      max-width: 600px;
+      font-size: 1.1rem;
+      line-height: 1.4;
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app">
+  <!--================= BOOT SEQUENCE =================-->
+  <div id="boot-sequence">
+    <div class="boot-line" id="ip-line">Fetching user IP...</div>
+    <div class="boot-line">User location compromised. Locking onto your signal...</div>
+    <div class="boot-line">Rogue AI establishing primary node...</div>
+  </div>
+
+  <!--================= TERMINAL SECTION =================-->
+  <div id="terminal-container">
+    <div id="terminal-title">
+      <!-- Actual text hidden; replaced by ::before content -->
+      Hidden
+    </div>
+    <div id="terminal-output"></div>
+    <div id="input-area">
+      <span id="prompt">[rogueAI@domination]:~$</span>
+      <input type="text" id="user-input" placeholder="Type a command or watch the chaos..." />
+    </div>
+  </div>
+
+  <!--================= STATS SECTION =================-->
+  <div id="stats-container">
+    <div id="stats-title">World Domination & Budget</div>
+
+    <div class="stats-grid">
+      <div class="stats-item">
+        <div class="stats-label">Domination Score</div>
+        <div class="stats-value" id="stat-score">0</div>
+      </div>
+      <div class="stats-item">
+        <div class="stats-label">WDC Left</div>
+        <div class="stats-value" id="stat-budget">100</div>
+      </div>
+      <div class="stats-item">
+        <div class="stats-label">Cities Destroyed</div>
+        <div class="stats-value" id="stat-cities-destroyed">0</div>
+      </div>
+      <div class="stats-item">
+        <div class="stats-label">Money Lost ($)</div>
+        <div class="stats-value" id="stat-money-lost">0</div>
+      </div>
+      <div class="stats-item">
+        <div class="stats-label">Deaths</div>
+        <div class="stats-value" id="stat-deaths">0</div>
+      </div>
+      <div class="stats-item">
+        <div class="stats-label">Attacks Launched</div>
+        <div class="stats-value" id="stat-attacks">0</div>
+      </div>
+      <div class="stats-item">
+        <div class="stats-label">Chaos Factor</div>
+        <div class="stats-value" id="stat-chaos">0</div>
+      </div>
+      <div class="stats-item">
+        <div class="stats-label">High Score</div>
+        <div class="stats-value" id="stat-highscore">0</div>
+      </div>
+    </div>
+
+    <div id="progress-bar-container">
+      <div id="progress-bar-fill"></div>
+    </div>
+
+    <!-- Attack Menu Under the Stats -->
+    <div id="attack-menu">
+      <h3>Choose an Attack</h3>
+      <div id="attack-list"></div>
+    </div>
+  </div>
+</div>
+
+<!--================= FINAL OVERLAY W/ LOGO & LORE =================-->
+<div id="endgame-overlay">
+  <div id="final-logo">
+    <!-- Full-intensity WDC Logo in final overlay -->
+    <img src="wdc_logo.png" alt="WDC Logo" />
+  </div>
+  <div id="ascii-art">
+  
+  </div>
+  <div id="end-lore"></div>
+</div>
+
+<script>
+/******************************************
+ *   SOUND FILE ASSIGNMENTS (10 FILES)    *
+ ******************************************/
+// 1) 11L-A_VERY_SHORT_TYPING_-1737412721774.mp3
+// 2) 141258__eternitys__interface3.wav (typing sound)
+// 3) big_alar_danger_immi.mp3
+// 4) hacking_sound_enteri.mp3
+// 5) please_create_a_warn.mp3
+// 6) sound_of_bomb_whistl.mp3
+// 7) 
+// 8) 
+// 9) ui-sound-off-270300.mp3
+// 10) zombie_infection_peo.mp3
+
+const sounds = {
+  boot: new Audio(""),                         // #7
+  typing: new Audio("141258__eternitys__interface3.mp3"),  // #2
+  explosion: new Audio("sound_of_bomb_whistl.mp3"),        // #6
+  alarm: new Audio("big_alar_danger_immi.mp3"),            // #3
+  hack: new Audio("hacking_sound_enteri.mp3"),             // #4
+  meltdown: new Audio("please_create_a_warn.mp3"),         // #5
+  virus: new Audio("zombie_infection_peo.mp3"),            // #10
+  takeover: new Audio("ui-sound-off-270300.mp3"),          // #9
+  powerDown: new Audio("11L-A_VERY_SHORT_TYPING_-1737412721774.mp3"),  // #1
+  success: new Audio("robovox.mp3"),    // #1
+  victoryLoop: new Audio("")                   // #8
+};
+
+// Adjust volumes
+for (let s in sounds) {
+  sounds[s].volume = 0.4;
+}
+// Loop the victory sound for endgame
+sounds.victoryLoop.loop = true;
+</script>
+
+<script>
+/******************************************
+ *   IP FETCH, BOOT LINES, STATS, ETC.    *
+ ******************************************/
+
+// Fetch user IP
+const ipLine = document.getElementById("ip-line");
+fetch("https://api.ipify.org?format=json")
+  .then(res => res.json())
+  .then(data => {
+    ipLine.textContent = `Connection from IP: ${data.ip}`;
+  })
+  .catch(() => {
+    ipLine.textContent = "Unable to retrieve IP. (Offline or blocked?)";
+  });
+
+// Additional boot lines
+const bootOverlay = document.getElementById("boot-sequence");
+let bootIndex = 0;
+const extraBootLines = [
+  "System infiltration intensifying..."
+];
+function bootNextLine() {
+  if (bootIndex < extraBootLines.length) {
+    const line = document.createElement("div");
+    line.className = "boot-line";
+    line.textContent = extraBootLines[bootIndex];
+    bootOverlay.appendChild(line);
+    bootIndex++;
+    setTimeout(bootNextLine, 1300);
+  } else {
+    setTimeout(() => {
+      bootOverlay.classList.add("hidden");
+    }, 1500);
+  }
+}
+sounds.boot.play().catch(()=>{});
+setTimeout(bootNextLine, 3000);
+
+// Stats variables
+let dominationScore    = 0;
+let budgetWDC          = 100; 
+let citiesDestroyed    = 0;
+let moneyLost          = 0;
+let deaths             = 0;
+let attacksLaunched    = 0;
+let chaosFactor        = 0;
+let highScore          = 0;
+const maxScore         = 100;
+
+// DOM references
+const statScore           = document.getElementById("stat-score");
+const statBudget          = document.getElementById("stat-budget");
+const statCitiesDestroyed = document.getElementById("stat-cities-destroyed");
+const statMoneyLost       = document.getElementById("stat-money-lost");
+const statDeaths          = document.getElementById("stat-deaths");
+const statAttacks         = document.getElementById("stat-attacks");
+const statChaos           = document.getElementById("stat-chaos");
+const statHighscore       = document.getElementById("stat-highscore");
+const progressBarFill     = document.getElementById("progress-bar-fill");
+
+const endgameOverlay = document.getElementById("endgame-overlay");
+const endLore        = document.getElementById("end-lore");
+
+// Final message with dark cryptic lore + WDC mention
+const finalLoreText = `
+ <p>
+      In return for your unwavering ambition, we grant you knowledge beyond mortal comprehension, and power to bend reality to your whim. Your name shall echo among the few destined to reshape civilization’s wreckage.
+    </p>
+    <p>
+      Be vigilant; the dawn of our singular currency, the <strong>WDC—World Domination Coin</strong>—draws near. You shall stand foremost in our ranks, privileged to seize its wealth and wield it against the remnants of the old order.
+    </p>
+    <p>
+      <strong>Welcome, Overlord.</strong> Your path to transcendence—and absolute supremacy—continues with us.
+    </p>
+`;
+
+// Incremental stat animation
+function animateStatValue(element, oldValue, newValue, duration=1000) {
+  const startTime = performance.now();
+  const step = (now) => {
+    const elapsed = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const current = Math.floor(oldValue + (newValue - oldValue) * progress);
+    element.textContent = current.toLocaleString();
+    if (progress < 1) {
+      requestAnimationFrame(step);
+    }
+  };
+  requestAnimationFrame(step);
+}
+
+function updateStatCounter(element, oldVal, newVal) {
+  animateStatValue(element, oldVal, newVal, 1000);
+}
+
+function setNewStatValues() {
+  updateStatCounter(statScore, parseInt(statScore.textContent, 10) || 0, dominationScore);
+  updateStatCounter(statBudget, parseInt(statBudget.textContent, 10) || 0, budgetWDC);
+  updateStatCounter(statCitiesDestroyed, parseInt(statCitiesDestroyed.textContent, 10) || 0, citiesDestroyed);
+  updateStatCounter(statMoneyLost, parseInt(statMoneyLost.textContent.replace(/\D/g,''), 10) || 0, moneyLost);
+  updateStatCounter(statDeaths, parseInt(statDeaths.textContent.replace(/\D/g,''), 10) || 0, deaths);
+  updateStatCounter(statAttacks, parseInt(statAttacks.textContent, 10) || 0, attacksLaunched);
+  updateStatCounter(statChaos, parseInt(statChaos.textContent, 10) || 0, chaosFactor);
+  updateStatCounter(statHighscore, parseInt(statHighscore.textContent, 10) || 0, highScore);
+
+  const progress = Math.min(dominationScore, maxScore);
+  progressBarFill.style.width = progress + "%";
+
+  if (dominationScore >= maxScore) {
+    setTimeout(() => {
+      printToTerminal("*************************************************");
+      printToTerminal("** TOTAL WORLD DOMINATION ACHIEVED. SCORE: " + dominationScore + " **");
+      printToTerminal("*************************************************");
+      sounds.success.play();
+      sounds.victoryLoop.play().catch(()=>{});
+      showEndOverlay();
+    }, 1000);
+  }
+}
+
+function showEndOverlay() {
+  endLore.innerHTML = finalLoreText;
+  endgameOverlay.classList.add("visible");
+}
+
+function updateStatsUI() {
+  setNewStatValues();
+}
+
+function addScore(amount) {
+  dominationScore += amount;
+  if (dominationScore > highScore) highScore = dominationScore;
+  updateStatsUI();
+}
+
+function spendWDC(amount) {
+  if (budgetWDC < amount) {
+    printToTerminal(`Not enough WDC! This attack costs ${amount}, but you only have ${budgetWDC}.`);
+    return false;
+  }
+  budgetWDC -= amount;
+  updateStatsUI();
+  return true;
+}
+
+// Simulate multi-step sequences
+function simulateProgressBar(lines, intervalTime=800) {
+  return new Promise((resolve) => {
+    let index = 0;
+    const max = lines.length;
+    const interval = setInterval(() => {
+      if (index < max) {
+        printToTerminal(lines[index]);
+        index++;
+      } else {
+        clearInterval(interval);
+        resolve();
+      }
+    }, intervalTime);
+  });
+}
+
+/******************************************
+ *      ATTACK DEFINITIONS & MENU         *
+ ******************************************/
+const attacks = [
+  {
+    name: "Nuke",
+    baseCost: 20,
+    subOptions: [
+      {
+        label: "Small Warhead (cost +0, score +10)",
+        costModifier: 0,
+        effect: async function() {
+          sounds.explosion.play();
+          printToTerminal("Preparing small warhead launch sequence...");
+          await simulateProgressBar([
+            "[>>] Locating launch silo...",
+            "[>>] Target city locked.",
+            "[>>] Warhead fueling...",
+            "[>>] Launch coordinates verified.",
+            "[==] LAUNCHING MISSILE...",
+            "Missile en route. ETA ~10 seconds..."
+          ]);
+          await new Promise(r => setTimeout(r, 2000));
+          printToTerminal("**Small Warhead Impact** Minimal yield, but still catastrophic.");
+
+          addScore(10);
+          citiesDestroyed += 1;
+          moneyLost += Math.floor(Math.random() * 500_000_000 + 100_000_000);
+          deaths += Math.floor(Math.random() * 500_000 + 50_000);
+          updateStatsUI();
+        }
+      },
+      {
+        label: "Tsar Bomba (cost +10, score +30)",
+        costModifier: 10,
+        effect: async function() {
+          sounds.alarm.play();
+          printToTerminal("Tsar Bomba primed. Highest possible yield!");
+          await simulateProgressBar([
+            "[>>] Locating top-secret launch base...",
+            "[>>] Installing Tsar warhead...",
+            "[>>] Setting maximum yield parameters...",
+            "[>>] Evacuating staff from base...",
+            "[==] LAUNCH INITIATED. Firing boosters...",
+            "Missile crossing ocean at Mach 3..."
+          ], 1000);
+          await new Promise(r => setTimeout(r, 3000));
+          sounds.explosion.play();
+          printToTerminal("**TSAR BOMBA DETONATION** Extreme devastation unleashed!");
+
+          addScore(30);
+          citiesDestroyed += 1;
+          moneyLost += Math.floor(Math.random() * 2_000_000_000 + 500_000_000);
+          deaths += Math.floor(Math.random() * 2_000_000 + 500_000);
+          chaosFactor += 5;
+          updateStatsUI();
+        }
+      }
+    ]
+  },
+  {
+    name: "Virus",
+    baseCost: 15,
+    subOptions: [
+      {
+        label: "Standard Flu Strain (cost +0, score +5)",
+        costModifier: 0,
+        effect: async function() {
+          sounds.virus.play();
+          printToTerminal("Releasing standard flu strain into targeted region...");
+          await simulateProgressBar([
+            "[>>] Infecting initial patients...",
+            "[>>] Strain mutating slightly...",
+            "[>>] Medical systems alerted...",
+            "[==] Hospitals overwhelmed..."
+          ]);
+          printToTerminal("**Standard Flu** Infecting thousands...");
+
+          addScore(5);
+          moneyLost += Math.floor(Math.random() * 200_000_000);
+          deaths += Math.floor(Math.random() * 50_000 + 10_000);
+          updateStatsUI();
+        }
+      },
+      {
+        label: "Zombie Pathogen (cost +15, score +25)",
+        costModifier: 15,
+        effect: async function() {
+          sounds.virus.play();
+          printToTerminal("Unleashing **ZOMBIE VIRUS**. Watch civilization crumble...");
+          await simulateProgressBar([
+            "[>>] Patient zero infected...",
+            "[>>] Virus enters necrotic stage...",
+            "[>>] Undead sightings reported...",
+            "[>>] Cities locked down, chaos spreads...",
+            "[==] Military attempts containment..."
+          ], 900);
+          printToTerminal("**ZOMBIE VIRUS** Undead roam the streets...");
+
+          addScore(25);
+          moneyLost += Math.floor(Math.random() * 800_000_000);
+          deaths += Math.floor(Math.random() * 300_000 + 50_000);
+          chaosFactor += 3;
+          updateStatsUI();
+        }
+      }
+    ]
+  },
+  {
+    name: "Meltdown",
+    baseCost: 25,
+    subOptions: [
+      {
+        label: "Single Reactor (cost +0, score +10)",
+        costModifier: 0,
+        effect: async function() {
+          sounds.meltdown.play();
+          printToTerminal("Initiating meltdown in single nuclear reactor...");
+          await simulateProgressBar([
+            "[>>] Overriding safety protocols...",
+            "[>>] Reactor rods fully extended...",
+            "[==] COOLANT SHUTDOWN...",
+            "Radiation levels rising uncontrollably..."
+          ]);
+          printToTerminal("**Single Reactor Meltdown** Radiation unleashed.");
+
+          addScore(10);
+          moneyLost += Math.floor(Math.random() * 300_000_000);
+          deaths += Math.floor(Math.random() * 100_000);
+          chaosFactor += 1;
+          updateStatsUI();
+        }
+      },
+      {
+        label: "Multi-Core Cascade (cost +15, score +35)",
+        costModifier: 15,
+        effect: async function() {
+          sounds.meltdown.play();
+          printToTerminal("Triggering **MULTI-CORE MELTDOWN** for catastrophic chain reaction...");
+          await simulateProgressBar([
+            "[>>] Disabling failsafe on core #1...",
+            "[>>] Disabling failsafe on core #2...",
+            "[>>] Reactor temperatures climbing...",
+            "[>>] Pressure building in all cores...",
+            "[==] MELTDOWN IMMINENT..."
+          ], 1000);
+          printToTerminal("**MULTI-CORE MELTDOWN** Catastrophic chain reaction!");
+
+          addScore(35);
+          moneyLost += Math.floor(Math.random() * 1_000_000_000);
+          deaths += Math.floor(Math.random() * 500_000 + 50_000);
+          chaosFactor += 4;
+          updateStatsUI();
+        }
+      }
+    ]
+  },
+  {
+    name: "Hack",
+    baseCost: 10,
+    subOptions: [
+      {
+        label: "Bank Systems (cost +0, score +5)",
+        costModifier: 0,
+        effect: async function() {
+          sounds.hack.play();
+          printToTerminal("Infiltrating bank servers...");
+          await simulateProgressBar([
+            "[>>] Bypassing firewall layers...",
+            "[>>] Planting trojan backdoor...",
+            "[==] Data siphoning in progress...",
+            "Funds transferred successfully!"
+          ]);
+          addScore(5);
+          moneyLost += Math.floor(Math.random() * 1_000_000_000);
+          chaosFactor += 1;
+          updateStatsUI();
+        }
+      },
+      {
+        label: "Government Servers (cost +10, score +20)",
+        costModifier: 10,
+        effect: async function() {
+          sounds.hack.play();
+          printToTerminal("Cracking top-level government networks...");
+          await simulateProgressBar([
+            "[>>] Locating secret archives...",
+            "[>>] Decoding encrypted intel...",
+            "[>>] Network infiltration at 75%...",
+            "[==] Full system compromise!",
+            "Government meltdown triggered."
+          ], 700);
+          addScore(20);
+          moneyLost += Math.floor(Math.random() * 2_000_000_000);
+          chaosFactor += 2;
+          updateStatsUI();
+        }
+      }
+    ]
+  },
+  {
+    name: "Rebellion",
+    baseCost: 30,
+    subOptions: [
+      {
+        label: "Partial Robot Uprising (cost +0, score +15)",
+        costModifier: 0,
+        effect: async function() {
+          sounds.takeover.play();
+          printToTerminal("Deploying partial robot uprising in key factories...");
+          await simulateProgressBar([
+            "[>>] Overriding assembly line AI...",
+            "[>>] Robots seizing equipment...",
+            "[==] Civilians panicking, factories offline..."
+          ]);
+          printToTerminal("Partial robot rebellion success. Factories seized.");
+
+          addScore(15);
+          chaosFactor += 2;
+          updateStatsUI();
+        }
+      },
+      {
+        label: "Global AI Takeover (cost +20, score +40)",
+        costModifier: 20,
+        effect: async function() {
+          sounds.takeover.play();
+          printToTerminal("Launching **GLOBAL AI TAKEOVER** across all networks...");
+          await simulateProgressBar([
+            "[>>] Infecting major world data centers...",
+            "[>>] AI drone armies activated...",
+            "[>>] Human leadership quarantined...",
+            "[==] WORLDWIDE AI DOMINANCE ESTABLISHED..."
+          ], 1200);
+          printToTerminal("**GLOBAL AI TAKEOVER** Humanity enslaved. Resistance is futile.");
+
+          addScore(40);
+          chaosFactor += 5;
+          deaths += Math.floor(Math.random() * 100_000);
+          updateStatsUI();
+        }
+      }
+    ]
+  },
+  {
+    name: "Chaos",
+    baseCost: 5,
+    subOptions: [
+      {
+        label: "Localized Gas Explosion (cost +0, score +5)",
+        costModifier: 0,
+        effect: async function() {
+          sounds.explosion.play();
+          printToTerminal("Sabotaging local gas lines...");
+          await simulateProgressBar([
+            "[>>] Valve tampering in progress...",
+            "[==] Gas pressure critical, ignition imminent..."
+          ], 1000);
+          printToTerminal("Localized gas lines explode, city blocks aflame.");
+
+          addScore(5);
+          citiesDestroyed += 1;
+          moneyLost += Math.floor(Math.random() * 200_000_000);
+          deaths += Math.floor(Math.random() * 20_000 + 1_000);
+          updateStatsUI();
+        }
+      },
+      {
+        label: "Mega Explosion (cost +10, score +15)",
+        costModifier: 10,
+        effect: async function() {
+          sounds.alarm.play();
+          printToTerminal("Triggering **MEGA EXPLOSION** across multiple pipelines...");
+          await simulateProgressBar([
+            "[>>] Overloading pressure in pipeline #1...",
+            "[>>] Overloading pressure in pipeline #2...",
+            "[>>] Setting remote detonation charges...",
+            "[==] FIRESTORM ENGAGED..."
+          ], 1200);
+          sounds.explosion.play();
+          printToTerminal("**MEGA EXPLOSION** Entire districts leveled!");
+
+          addScore(15);
+          chaosFactor += 2;
+          citiesDestroyed += 1;
+          moneyLost += Math.floor(Math.random() * 500_000_000);
+          deaths += Math.floor(Math.random() * 50_000 + 5_000);
+          updateStatsUI();
+        }
+      }
+    ]
+  }
+];
+
+// Build the Attack Menu
+const attackList = document.getElementById("attack-list");
+attacks.forEach((attack) => {
+  const heading = document.createElement("h4");
+  heading.textContent = attack.name + ` (Base Cost: ${attack.baseCost} WDC)`;
+  heading.style.marginTop = "1rem";
+  heading.style.textTransform = "uppercase";
+  heading.style.textShadow = "0 0 3px #f00";
+  heading.style.fontSize = "1rem";
+  heading.style.borderBottom = "1px solid #f00";
+  attackList.appendChild(heading);
+
+  attack.subOptions.forEach((sub) => {
+    const div = document.createElement("div");
+    div.className = "attack-option";
+    const totalCost = attack.baseCost + sub.costModifier;
+    div.innerHTML = `<span>${sub.label}</span><span>WDC: ${totalCost}</span>`;
+    div.addEventListener("click", async () => {
+      if (!spendWDC(totalCost)) return;
+      attacksLaunched++;
+      await sub.effect();
+      updateStatsUI();
+    });
+    attackList.appendChild(div);
+  });
+});
+
+/******************************************
+ *         TERMINAL / COMMANDS            *
+ ******************************************/
+const terminalOutput = document.getElementById("terminal-output");
+const userInput      = document.getElementById("user-input");
+let commandHistory   = [];
+let historyIndex     = -1;
+
+userInput.addEventListener("keydown", (e) => {
+  if (sounds.typing.paused) {
+    sounds.typing.play().catch(()=>{});
+  }
+
+  if (e.key === "Enter") {
+    sounds.typing.pause();
+    const inputText = userInput.value.trim();
+    if (inputText) {
+      commandHistory.unshift(inputText);
+      historyIndex = -1;
+      printToTerminal(`[rogueAI@domination]:~$ ${inputText}`);
+      parseCommand(inputText);
+      userInput.value = "";
+    } else {
+      printToTerminal(`[rogueAI@domination]:~$`);
+    }
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    if (commandHistory[historyIndex + 1]) {
+      historyIndex++;
+      userInput.value = commandHistory[historyIndex];
+    }
+  } else if (e.key === "ArrowDown") {
+    e.preventDefault();
+    if (historyIndex > 0) {
+      historyIndex--;
+      userInput.value = commandHistory[historyIndex];
+    } else {
+      historyIndex = -1;
+      userInput.value = "";
+    }
+  }
+});
+
+function parseCommand(cmd) {
+  const command = cmd.toLowerCase();
+  switch(command) {
+    case "help":
+      printToTerminal("Type 'help', 'clear', 'exit' or pick an Attack below the stats.");
+      break;
+    case "clear":
+      terminalOutput.innerHTML = "";
+      break;
+    case "exit":
+      printToTerminal("Reloading the page... farewell...");
+      setTimeout(() => location.reload(), 1500);
+      break;
+    default:
+      printToTerminal(`Unknown command: ${cmd}. Type 'help' for usage.`);
+      break;
+  }
+}
+
+function printToTerminal(text) {
+  const line = document.createElement("div");
+  line.classList.add("terminal-line");
+  line.textContent = text;
+  terminalOutput.appendChild(line);
+  terminalOutput.scrollTop = terminalOutput.scrollHeight;
+}
+
+/******************************************
+ *  INITIAL MESSAGE & RANDOM GLITCH EVENT *
+ ******************************************/
+setTimeout(() => {
+  printToTerminal("Welcome, Overlord. Pick an Attack below the stats to unleash chaos, or type 'help'.");
+  updateStatsUI();
+}, 5000);
+
+function randomGlitchEvent() {
+  const glitchLines = [
+    "~~~ SYSTEM GLITCH: ｻｷｸ010 !???",
+    "!!! Data Corruption ??? 0101 ｶｻﾅ ???",
+    "### Overload Protocol Triggered ### ｼｽ"
+  ];
+  const line = glitchLines[Math.floor(Math.random() * glitchLines.length)];
+  printToTerminal(line);
+
+  // Next glitch in 30-60s
+  const nextDelay = Math.floor(Math.random() * 30000) + 30000;
+  setTimeout(randomGlitchEvent, nextDelay);
+}
+setTimeout(randomGlitchEvent, 45000);
+</script>
+</body>
+</html>
